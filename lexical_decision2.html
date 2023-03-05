@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+   <head>
+    <title>Lexical Decision</title>
+    <script src="https://unpkg.com/jspsych@7.3.1"></script>
+    <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@1.1.2"></script>
+    <link href="https://unpkg.com/jspsych@7.3.1/css/jspsych.css" rel="stylesheet" type="text/css" />
+   </head> 
+   <body></body>
+   <script>
+// initialize JsPsych
+var jsPsych = initJsPsych({
+            on_finish: function() {
+                jsPsych.data.displayData();
+            }
+        });
+
+// create timeline
+var timeline = [];
+
+//welcome page
+var welcome = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: "Welcome to the experiment. Press any key to begin."
+};
+timeline.push(welcome);
+
+// instructions 
+var instructions = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p>In this experiment you will be presented with a series of words 
+        and non-words.</p><p>If you are shown a real word, press <strong>g</strong> as 
+        fast as you can.</p><p>If the stimulus is not a word, 
+        press <strong>j</strong> as fast as you can.</p><p>Press any key to begin</p>
+`
+};
+timeline.push(instructions)
+
+// stimuli
+var test_stimuli = [
+    { stimulus: "cat",  correct_response: 'g', variable_type: "real"},
+    { stimulus: "ear",  correct_response: 'g', variable_type: "real"},
+    { stimulus: "tea",  correct_response: 'g', variable_type: "real"},
+    { stimulus: "dot",  correct_response: 'g', variable_type: "real"},
+    { stimulus: "hat",  correct_response: 'g', variable_type: "real"},
+    { stimulus: "hap",  correct_response: 'j', variable_type: "fake"},
+    { stimulus: "tyf",  correct_response: 'j', variable_type: "fake"},
+    { stimulus: "eem",  correct_response: 'j', variable_type: "fake"},
+    { stimulus: "doz",  correct_response: 'j', variable_type: "fake"},
+    { stimulus: "cix",  correct_response: 'j', variable_type: "fake"}
+];
+
+// fixation cross and trials
+var fixation = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: '<div style="font-size:60px;">+</div>',
+  choices: "NO_KEYS",
+  trial_duration: 1000,
+  data: {
+    task: 'fixation'
+  }
+};
+var test = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: jsPsych.timelineVariable('stimulus'),
+      choices: ['g', 'j'],
+      data: {
+    task: 'response',
+    correct_response: jsPsych.timelineVariable('correct_response'),
+    variable_type: jsPsych.timelineVariable('variable_type')
+  },
+  on_finish: function(data){
+    data.correct = jsPsych.pluginAPI.compareKeys(data.response, data.correct_response);
+  }
+    };
+
+// procedure
+var test_procedure = {
+  timeline: [fixation, test],
+  timeline_variables: test_stimuli,
+  randomize_order: true,
+  repetitions: 1
+};
+timeline.push(test_procedure); 
+
+//debrief 
+var debrief_block_real = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: function() {
+
+    var trials = jsPsych.data.get().filter({task: 'response', variable_type: 'real'});
+    var correct_trials = trials.filter({correct: true});
+    var accuracy_real = Math.round(correct_trials.count() / trials.count() * 100);
+    var rt_real = Math.round(correct_trials.select('rt').mean());
+
+    return `<p>You correctly identified ${accuracy_real}% of the real words.</p>
+      <p>Your average response time for real words was ${rt_real}ms.</p>
+      <p> Press any key to see your results for fake words</p>
+      `;
+
+}
+};
+timeline.push(debrief_block_real);
+
+var debrief_block_fake = {
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: function() {
+
+    var trials = jsPsych.data.get().filter({task: 'response', variable_type: 'fake'});
+    var correct_trials = trials.filter({correct: true});
+    var accuracy_fake = Math.round(correct_trials.count() / trials.count() * 100);
+    var rt_fake = Math.round(correct_trials.select('rt').mean());
+
+    return `<p>You correctly identified ${accuracy_fake}% of the fake words.</p>
+      <p>Your average response time for fake words was ${rt_fake}ms.</p>
+      <p>Thank you for participating! Press any key to complete the experiment.</p>`;
+
+}
+};
+timeline.push(debrief_block_fake);
+
+// run experiment
+jsPsych.run(timeline);
+   </script>
+</html>
